@@ -1,0 +1,1409 @@
+
+config:
+  timeout: 4
+  markers:
+      - "dot: test specific to DoT"
+      - "doh: test specific to DoH"
+      - "monitoring: test using monitoring"
+      - "streams: test multistreams with DoH"
+      - "check: test related to the compliance option --check"
+      - "forceIPv4: test using the option -4"
+      - "forceIPv6: test using the option -6"
+      - "pipelining: test with --pipelining option"
+      - "fail: mark test with a resolver currently failing our tests"
+      - "slow: test that need time to run"
+
+tests:
+
+# Test options and option combination
+###############################################################################
+
+    - name: 'Usage'
+      exe: './remoh.py'
+      args:
+          - '-h'
+      retcode: 0
+      partstderr: 'url-or-servername domain-name [DNS type]'
+      stdout: ''
+
+    - name: 'Unknown option'
+      exe: './remoh.py'
+      args:
+          - '--zzz'
+      retcode: 1
+      partstderr: 'option --zzz not recognized'
+      stdout: ''
+
+# wrong number of options
+
+    - name: 'No arguments'
+      exe: './remoh.py'
+      retcode: 1
+      partstderr: 'Wrong number of arguments'
+      stdout: ''
+
+    - name: '[doh] Only a URL'
+      exe: './remoh.py'
+      retcode: 1
+      partstderr: 'Wrong number of arguments'
+      stdout: ''
+
+    - name: '[dot] Only a servername'
+      exe: './remoh.py'
+      args:
+          - '--dot'
+      retcode: 1
+      partstderr: 'Wrong number of arguments'
+      stdout: ''
+
+    - name: '[doh] Using a file and specifying a domain name'
+      exe: './remoh.py'
+      args:
+          - '-f input_file'
+          - 'https://doh.bortzmeyer.fr'
+          - 'afnic.fr'
+      retcode: 1
+      partstderr: 'Wrong number of arguments'
+      stdout: ''
+
+    - name: '[dot] Using a file and specifying a domain name'
+      exe: './remoh.py'
+      args:
+          - '--dot'
+          - '-f input_file'
+          - 'dot.bortzmeyer.fr'
+          - 'afnic.fr'
+      retcode: 1
+      partstderr: 'Wrong number of arguments'
+      stdout: ''
+
+# conflicting options
+
+    - name: '[doh] Force IPv4 and IPv6'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+          - 'forceIPv4'
+          - 'forceIPv6'
+      args:
+          - '-4'
+          - '-6'
+          - 'https://doh.bortzmeyer.fr/'
+          - 'framagit.org'
+      retcode: 1
+      partstderr: 'IPv4 *or* IPv6'
+      stdout: ''
+
+    - name: '[dot] Force IPv4 and IPv6'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+          - 'forceIPv4'
+          - 'forceIPv6'
+      args:
+          - '-4'
+          - '-6'
+          - '--dot'
+          - 'dot.bortzmeyer.fr'
+          - 'framagit.org'
+      retcode: 1
+      partstderr: 'IPv4 *or* IPv6'
+      stdout: ''
+
+    - name: '[doh] HEAD and POST'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+      args:
+          - '--head'
+          - '--POST'
+          - 'https://doh.bortzmeyer.fr'
+          - 'framagit.org'
+      retcode: 1
+      partstderr: 'POST or HEAD'
+      stdout: ''
+
+    - name: '[doh][pipelining] Pipelining only with dot'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+          - 'pipelining'
+      args:
+          - '--pipelining'
+          - 'https://doh.bortzmeyer.fr'
+      retcode: 1
+      partstderr: 'Pipelining is only accepted for DoT'
+      stdout: ''
+
+    - name: '[dot][pipelining] Pipelining only with input file'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+          - 'pipelining'
+      args:
+          - '--dot'
+          - '--pipelining'
+          - 'dot.bortzmeyer.fr'
+      retcode: 1
+      partstderr: 'Pipelining requires an input file'
+      stdout: ''
+
+    - name: '[doh][streams] Multistreams with DoT (error)'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+          - 'streams'
+      args:
+          - '--multistreams'
+          - '--dot'
+          - 'dot.bortzmeyer.fr'
+          - 'framagit.org'
+      retcode: 1
+      partstderr: 'Multi-streams makes no sense for DoT'
+      stdout: ''
+
+    - name: '[doh][streams] Multistreams without input file (error)'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+          - 'streams'
+      args:
+          - '--multistreams'
+          - 'dot.bortzmeyer.fr'
+          - 'framagit.org'
+      retcode: 1
+      partstderr: 'Multi-streams requires an input file'
+      stdout: ''
+
+    - name: '[doh][streams] Multistreams too many arguments (error)'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+          - 'streams'
+      args:
+          - '--multistreams'
+          - '--file'
+          - 'input_file'
+          - 'https://doh.bortzmeyer.fr'
+          - 'framagit.org'
+      retcode: 1
+      partstderr: 'Wrong number of arguments'
+      stdout: ''
+
+    - name: '[doh][streams] Multistreams invalid URL'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+          - 'streams'
+      args:
+          - '--multistreams'
+          - '--file'
+          - 'input_file'
+          - 'dot.bortzmeyer.fr'
+      retcode: 1
+      partstderr: 'DoH requires a valid'
+      stdout: ''
+
+    - name: '[doh][streams][check] Multistreams and check incompatible (error)'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+          - 'streams'
+          - 'check'
+      args:
+          - '--check'
+          - '--multistreams'
+          - '--file'
+          - 'input_file'
+          - 'dot.bortzmeyer.fr'
+      retcode: 1
+      partstderr: '--check and --multistreams are not compatible'
+      stdout: ''
+
+    - name: '[monitoring][dot] Force IPv4 and IPv6 with an IPv6'
+      exe: './check_dot'
+      markers:
+          - 'dot'
+          - 'monitoring'
+          - 'forceIPv4'
+          - 'forceIPv6'
+      args:
+          - '-4'
+          - '-6'
+          - '-H'
+          - '2001:41d0:302:2200::180'
+          - '-V'
+          - 'dot.bortzmeyer.fr'
+          - '-n'
+          - 'framagit.org'
+      retcode: 2
+      stderr: ''
+      partstout: 'IPv4 *or* IPv6'
+
+    - name: '[monitoring][dot] Force IPv4 and IPv6 with an IPv4'
+      exe: './check_dot'
+      markers:
+          - 'dot'
+          - 'monitoring'
+          - 'forceIPv4'
+          - 'forceIPv6'
+      args:
+          - '-4'
+          - '-6'
+          - '-H'
+          - '193.70.85.11'
+          - '-V'
+          - 'dot.bortzmeyer.fr'
+          - '-n'
+          - 'framagit.org'
+      retcode: 2
+      stderr: ''
+      partstdout: 'IPv4 *or* IPv6'
+
+    - name: '[monitoring][dot] Use IPv4 address and force IPv6'
+      exe: './check_dot'
+      markers:
+          - 'dot'
+          - 'monitoring'
+          - 'forceIPv6'
+      args:
+          - '-6'
+          - '-H'
+          - '193.70.85.11'
+          - '-V'
+          - 'dot.bortzmeyer.fr'
+          - '-n'
+          - 'framagit.org'
+      retcode: 2
+      stderr: ''
+      partstdout: 'litteral IPv4'
+
+    - name: '[monitoring][dot] Use IPv6 address and force IPv4'
+      exe: './check_dot'
+      markers:
+          - 'dot'
+          - 'monitoring'
+          - 'forceIPv4'
+      args:
+          - '-4'
+          - '-H'
+          - '2001:41d0:302:2200::180'
+          - '-V'
+          - 'dot.bortzmeyer.fr'
+          - '-n'
+          - 'framagit.org'
+      retcode: 2
+      stderr: ''
+      partstdout: 'litteral IPv6'
+
+    - name: '[monitoring][doh] Force IPv4 and IPv6 with an IPv6'
+      exe: './check_doh'
+      markers:
+          - 'doh'
+          - 'monitoring'
+          - 'forceIPv4'
+          - 'forceIPv6'
+      args:
+          - '-4'
+          - '-6'
+          - '-H'
+          - '2001:41d0:302:2200::180'
+          - '-V'
+          - 'doh.bortzmeyer.fr'
+          - '-n'
+          - 'framagit.org'
+      retcode: 2
+      stderr: ''
+      partstdout: 'IPv4 *or* IPv6'
+
+    - name: '[monitoring][doh] Force IPv4 and IPv6 with an IPv4'
+      exe: './check_doh'
+      markers:
+          - 'doh'
+          - 'monitoring'
+          - 'forceIPv4'
+          - 'forceIPv6'
+      args:
+          - '-4'
+          - '-6'
+          - '-H'
+          - '193.70.85.11'
+          - '-V'
+          - 'doh.bortzmeyer.fr'
+          - '-n'
+          - 'framagit.org'
+      retcode: 2
+      stderr: ''
+      partstdout: 'IPv4 *or* IPv6'
+
+    - name: '[monitoring][doh] Use IPv4 address and force IPv6'
+      exe: './check_doh'
+      markers:
+          - 'doh'
+          - 'monitoring'
+          - 'forceIPv6'
+      args:
+          - '-6'
+          - '-H'
+          - '193.70.85.11'
+          - '-V'
+          - 'doh.bortzmeyer.fr'
+          - '-n'
+          - 'framagit.org'
+      retcode: 2
+      stderr: ''
+      partstdout: 'litteral IPv4'
+
+    - name: '[monitoring][doh] Use IPv6 address and force IPv4'
+      exe: './check_doh'
+      markers:
+          - 'doh'
+          - 'monitoring'
+          - 'forceIPv4'
+      args:
+          - '-4'
+          - '-H'
+          - '2001:41d0:302:2200::180'
+          - '-V'
+          - 'doh.bortzmeyer.fr'
+          - '-n'
+          - 'framagit.org'
+      retcode: 2
+      stderr: ''
+      partstdout: 'litteral IPv6'
+
+# valid options with valid behaviour
+
+    - name: '[doh] POST --post'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+      args:
+          - '--post'
+          - 'https://doh.bortzmeyer.fr'
+          - 'framagit.org'
+      retcode: 0
+      stderr: ''
+      partstdout: '2a01:4f8:'
+
+    - name: '[doh] POST --POST'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+      args:
+          - '--POST'
+          - 'https://doh.bortzmeyer.fr'
+          - 'framagit.org'
+      retcode: 0
+      stderr: ''
+      partstdout: '2a01:4f8:'
+
+    - name: '[doh] POST -P'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+      args:
+          - '-P'
+          - 'https://doh.bortzmeyer.fr'
+          - 'framagit.org'
+      retcode: 0
+      stderr: ''
+      partstdout: '2a01:4f8:'
+
+    - name: '[doh] HEAD --head'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+      args:
+          - '--head'
+          - 'https://doh.bortzmeyer.fr'
+          - 'framagit.org'
+      retcode: 0
+      stderr: ''
+      partstdout: 'HEAD'
+
+    - name: '[doh] HEAD --HEAD'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+      args:
+          - '--HEAD'
+          - 'https://doh.bortzmeyer.fr'
+          - 'framagit.org'
+      retcode: 0
+      stderr: ''
+      partstdout: 'HEAD'
+
+    - name: '[doh] HEAD -e'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+      args:
+          - '-e'
+          - 'https://doh.bortzmeyer.fr'
+          - 'framagit.org'
+      retcode: 0
+      stderr: ''
+      partstdout: 'HEAD'
+
+# Simple behaviour
+###############################################################################
+
+    - name: '[doh] Simple resolution'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+      args:
+          - 'https://doh.bortzmeyer.fr/'
+          - 'framagit.org'
+      retcode: 0
+      stderr: ''
+      partstdout: '2a01:4f8:'
+
+    - name: '[dot] Simple resolution'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+      args:
+          - '--dot'
+          - 'dot.bortzmeyer.fr'
+          - 'framagit.org'
+      retcode: 0
+      stderr: ''
+      partstdout: '2a01:4f8:'
+
+    - name: '[dot] Not a valid server name or IP'
+      exe: './remoh.py'
+      args:
+          - '--dot'
+          - 'https//doh.bortzmeyer.fr'
+          - 'framagit.org'
+      retcode: 1
+      partstderr: 'not a name or'
+      stdout: ''
+
+    - name: '[doh] Repeat single test'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+      args:
+          - '--repeat'
+          - '3'
+          - 'https://doh.bortzmeyer.fr/'
+          - 'wikimedia.org'
+      retcode: 0
+      partstdout: "NOERR"
+
+    - name: '[dot] Repeat single test'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+      args:
+          - '--dot'
+          - '--repeat'
+          - '5'
+          - 'dot.bortzmeyer.fr'
+          - 'framasoft.org'
+      retcode: 0
+      partstdout: "Test 4\n"
+
+    - name: '[dot] Connection closed by remote after to many repeats'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+      timeout: 10
+      args:
+          - '--dot'
+          - '--repeat'
+          - '500'
+          - 'dot.bortzmeyer.fr'
+          - 'framasoft.org'
+      retcode: 1
+      partstderr: "The SSL connection has been closed"
+
+    - name: '[dot] Use IPv4 address (raise certificate error)'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+      args:
+          - '--dot'
+          - '193.70.85.11'
+          - 'framagit.org'
+      retcode: 1
+      partstderr: 'Certificate error'
+      stdout: ''
+
+    - name: '[dot] Use IPv4 address (without certificate check)'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+      args:
+          - '--insecure'
+          - '--dot'
+          - '193.70.85.11'
+          - 'framagit.org'
+      retcode: 0
+      stderr: ''
+      partstdout: '2a01:4f8:'
+
+    - name: '[dot] Use IPv4 address and force IPv6 (without certificate check)'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+          - 'forceIPv6'
+      args:
+          - '-6'
+          - '--insecure'
+          - '--dot'
+          - '193.70.85.11'
+          - 'framagit.org'
+      retcode: 1
+      partstderr: 'litteral IPv4'
+      stdout: ''
+
+    - name: '[dot] Use IPv6 address (raise certificate error)'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+      args:
+          - '--dot'
+          - '2001:620:0:ff::2'
+          - 'framagit.org'
+      retcode: 1
+      partstderr: 'Certificate error'
+      stdout: ''
+
+    - name: '[dot] Use IPv6 address (without certificate check)'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+      args:
+          - '--insecure'
+          - '--dot'
+          - '2001:620:0:ff::2'
+          - 'framagit.org'
+      retcode: 0
+      stderr: ''
+      partstdout: '2a01:4f8:'
+
+    - name: '[dot] Use IPv6 address and force IPv4 (without certificate check)'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+          - 'forceIPv4'
+      args:
+          - '-4'
+          - '--insecure'
+          - '--dot'
+          - '2001:620:0:ff::2'
+          - 'framagit.org'
+      retcode: 1
+      partstderr: 'litteral IPv6'
+      stdout: ''
+
+    - name: '[dot] Loop on all ips on connection error (brok.sources.org)'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+          - 'slow'
+      timeout: 6
+      args:
+          - '--dot'
+          - '--insecure'
+          - 'brok.sources.org'
+          - 'framagit.org'
+      retcode: 0
+      stderr: ''
+      partstdout: '2a01:4f8:'
+
+    - name: '[dot] Force IPv6 on brok.sources.org'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+          - 'forceIPv6'
+          - 'slow'
+      timeout: 6
+      args:
+          - '-6'
+          - '--insecure'
+          - '--dot'
+          - 'brok.sources.org'
+          - 'framagit.org'
+      retcode: 1
+      partstderr: 'not connect to'
+      stdout: ''
+
+    - name: '[dot] Not a DoT server'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+      timeout: 5
+      args:
+          - '--dot'
+          - 'afnic.fr'
+          - 'framagit.org'
+      retcode: 1
+      partstderr: 'not connect to'
+      stdout: ''
+
+    - name: '[dot] Authenticates with the key (SPKI)'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+      timeout: 5
+      args:
+          - '--dot'
+          - '--key'
+          - '62lKu9HsDVbyiPenApnc4sfmSYTHOVfFgL3pyB+cBL4='
+          - '145.100.185.15'
+          - 'sinodun.com'
+      retcode: 0
+      stderr: ''
+
+    - name: '[dot] Authenticates with the WRONG key (SPKI)'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+      timeout: 5
+      args:
+          - '--dot'
+          - '--key'
+          - '62pKu9HsDVbyiPenApnc4sfmSYTHOVfFgL3pyB+cBL5='
+          - '145.100.185.15'
+          - 'sinodun.com'
+      retcode: 1
+      partstderr: 'Key error'
+
+
+    # as of 20200902, this test is now failing, the OpenSSL error disappeared
+    #    - name: '[dot] Catch OpenSSL.SSL.SysCallError'
+    #      exe: './remoh.py'
+    #      markers:
+    #          - 'dot'
+    #          - 'forceIPv4'
+    #      args:
+    #          - '--dot'
+    #          - '--v4only'
+    #          - '--verbose'
+    #          - 'dnsotls.lab.nic.cl'
+    #          - 'wikipedia.org'
+    #      retcode: 1
+    #      partstderr: 'OpenSSL error: Unexpected EOF'
+
+
+    - name: '[dot] Catch error with SNI set with IPv6 address'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+      args:
+          - '--dot'
+          - '--insecure'
+          - '--verbose'
+          - '2001:41d0:302:2200::180'
+          - 'toto.fr'
+      retcode: 1
+      partstderr: 'The SSL connection has been closed (try with --nosni'
+
+    - name: '[dot][fail] Resolver with an invalid certificate'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+          - 'fail'
+      args:
+          - '--dot'
+          - '-v'
+          - 'ns0.ldn-fai.net'
+          - 'framagit.org'
+      retcode: 1
+      partstderr: 'certificate verify failed'
+
+# Invalid behaviour - errors should be caught
+###############################################################################
+
+    - name: '[doh] Invalide certificate'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+      args:
+          - 'https://dot.bortzmeyer.fr'
+          - 'chatons.org'
+      retcode: 1
+      partstderr: 'does not match target host name'
+      partstdout: 'Total elapsed time'
+
+# Use --check option
+###############################################################################
+
+    - name: '[doh][check] --check of a correct DoH'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+          - 'check'
+      args:
+          - '--check'
+          - 'https://doh.bortzmeyer.fr/'
+          - 'chatons.org'
+      retcode: 0
+      stdout: "OK\n"
+
+    - name: '[doh][check] --check of a broken DoH'
+      exe: './remoh.py'
+      timeout: 6
+      markers:
+          - 'doh'
+          - 'check'
+      args:
+          - '--check'
+          - 'https://www.bortzmeyer.org/'
+          - 'joinpeertube.org'
+      retcode: 1
+      stderr: ''
+      stdout: "KO\n"
+
+    - name: '[doh][check] --check of a DoH with HEAD unimplemented'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+          - 'check'
+      args:
+          - '--check'
+          - '--mandatory-level'
+          - 'nicetohave'
+          - 'https://doh.42l.fr/dns-query'
+          - 'joinmobilizon.org'
+      retcode: 1
+      partstderr: "Test HEAD: HTTP error 405: [No details]\n"
+      stdout: "KO\n"
+
+    - name: '[dot][check] --check of a correct DoT'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+          - 'check'
+      args:
+          - '--check'
+          - '--dot'
+          - 'dot.bortzmeyer.fr'
+          - 'joinpeertube.org'
+      retcode: 0
+      stderr: ''
+      stdout: "OK\n"
+
+    - name: '[dot][check] --check of a correct DoT with debug mode'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+          - 'check'
+      args:
+          - '--dot'
+          - '--check'
+          - '--debug'
+          - 'dot.bortzmeyer.fr'
+          - 'dnsforum.bj'
+      retcode: 0
+      stderr: ''
+      partstdout: "OK\n"
+
+    - name: "[doh][check] Successcul check"
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+          - 'check'
+      args:
+          - '--check'
+          - 'https://dns.google/dns-query'
+          - 'framagit.org'
+      retcode: 0
+      stderr: ''
+      stdout: "OK\n"
+
+    - name: "[doh][fail][check] 502 Bad Gateway"
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+          - 'check'
+          - 'fail'
+          - 'slow'
+      timeout: 12
+      args:
+          - '--check'
+          - '--mandatory-level'
+          - 'nocrash'
+          - 'https://doh.42l.fr/dns-query'
+          - 'framagit.org'
+      retcode: 1
+      partstderr: 'Test truncated data: HTTP error 502'
+      stdout: "KO\n"
+
+    - name: '[doh][check] Test that all the resolved IPs are tried, try a first IP'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+          - 'check'
+      args:
+          - '--debug'
+          - '--check'
+          - 'https://doh.bortzmeyer.fr'
+          - 'www.afnic.fr'
+      retcode: 0
+      partstderr: "Connecting to hostname: 2001:41d0:302:2200::180"
+
+    - name: '[doh][check] Test that all the resolved IPs are tried, try another IP'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+          - 'check'
+      args:
+          - '--debug'
+          - '--check'
+          - 'https://doh.bortzmeyer.fr'
+          - 'curl.haxx.se'
+      retcode: 0
+      partstderr: "Connecting to hostname: 193.70.85.11"
+
+    - name: '[dot][check] Test that all the resolved IPs are tried, try a first IP'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+          - 'check'
+      args:
+          - '-v'
+          - '--check'
+          - '--dot'
+          - 'dot.bortzmeyer.fr'
+          - 'www.afnic.fr'
+      retcode: 0
+      partstdout: "checking IP : 193.70.85.11\nConnecting to 193.70.85.11 ..."
+
+    - name: '[dot][check] Test that all the resolved IPs are tried, try another IP'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+          - 'check'
+      args:
+          - '-v'
+          - '--check'
+          - '--dot'
+          - 'dot.bortzmeyer.fr'
+          - 'www.afnic.fr'
+      retcode: 0
+      partstdout: "checking IP : 2001:41d0:302:2200::180\nConnecting to 2001:41d0:302:2200::180 ..."
+
+    - name: '[dot][check] Test all the IPs, force IPv4'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+          - 'check'
+          - 'forceIPv4'
+      args:
+          - '-v'
+          - '-4'
+          - '--check'
+          - '--dot'
+          - 'dns.google'
+          - 'framagit.org'
+      retcode: 0
+      partstdout: "checking IP : 8.8.8.8\nConnecting to 8.8.8.8 ..."
+
+    - name: '[dot][check] Test all the IPs, force IPv4, check another IP'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+          - 'check'
+          - 'forceIPv4'
+      args:
+          - '-v'
+          - '-4'
+          - '--check'
+          - '--dot'
+          - 'dns.google'
+          - 'framagit.org'
+      retcode: 0
+      partstdout: "checking IP : 8.8.4.4\nConnecting to 8.8.4.4 ..."
+
+    - name: '[dot][check] Test all the IPs, force IPv6'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+          - 'check'
+          - 'forceIPv6'
+      args:
+          - '-v'
+          - '-6'
+          - '--check'
+          - '--dot'
+          - 'dns.google'
+          - 'framagit.org'
+      retcode: 0
+      partstdout: "checking IP : 2001:4860:4860::8844\nConnecting to 2001:4860:4860::8844 ..."
+
+    - name: '[dot][check] Test all the IPs, force IPv6, check another IP'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+          - 'check'
+          - 'forceIPv6'
+      args:
+          - '-v'
+          - '-6'
+          - '--check'
+          - '--dot'
+          - 'dns.google'
+          - 'framagit.org'
+      retcode: 0
+      partstdout: "checking IP : 2001:4860:4860::8888\nConnecting to 2001:4860:4860::8888 ..."
+
+    - name: '[dot][check] Verify that all IPs are tried even when one is failing'
+      exe: './remoh.py'
+      timeout: 6
+      markers:
+          - 'dot'
+          - 'check'
+      args:
+          - '-v'
+          - '-k'
+          - '--dot'
+          - '--check'
+          - 'brok.sources.org'
+          - 'tm'
+      retcode: 1
+      partstdout: "(3/3) checking IP"
+
+    - name: '[doh][check] Test all the IPs, force IPv4'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+          - 'check'
+          - 'forceIPv4'
+      args:
+          - '--debug'
+          - '-4'
+          - '--check'
+          - 'https://dns.google/dns-query'
+          - 'www.afnic.fr'
+      retcode: 0
+      partstderr: "Connecting to hostname: 8.8.8.8"
+
+    - name: '[doh][check] Test all the IPs, force IPv4, check another IP'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+          - 'check'
+          - 'forceIPv4'
+      args:
+          - '--debug'
+          - '-4'
+          - '--check'
+          - 'https://dns.google/dns-query'
+          - 'curl.haxx.se'
+      retcode: 0
+      partstderr: "Connecting to hostname: 8.8.4.4"
+
+    - name: '[doh][check] Test all the IPs, force IPv6'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+          - 'check'
+          - 'forceIPv6'
+      args:
+          - '--debug'
+          - '-6'
+          - '--check'
+          - 'https://dns.google/dns-query'
+          - 'www.afnic.fr'
+      retcode: 0
+      partstderr: "Connecting to hostname: 2001:4860:4860::8888"
+
+    - name: '[doh][check] Test all the IPs, force IPv6, check another IP'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+          - 'check'
+          - 'forceIPv6'
+      args:
+          - '--debug'
+          - '-6'
+          - '--check'
+          - 'https://dns.google/dns-query'
+          - 'curl.haxx.se'
+      retcode: 0
+      partstderr: "Connecting to hostname: 2001:4860:4860::8844"
+
+    - name: '[dot][check] Test all IPs on brok.sources.org'
+      exe: './remoh.py'
+      timeout: 6
+      markers:
+          - 'dot'
+          - 'check'
+          - 'slow'
+      args:
+          - '-k'
+          - '--check'
+          - '--dot'
+          - 'brok.sources.org'
+          - 'in'
+      retcode: 1
+      partstderr: 'Could not connect to'
+
+    - name: '[dot][check] Test all IPs on brok.sources.org, get a KO'
+      exe: './remoh.py'
+      timeout: 6
+      markers:
+          - 'dot'
+          - 'check'
+          - 'slow'
+      args:
+          - '-k'
+          - '--check'
+          - '--dot'
+          - 'brok.sources.org'
+          - 'in'
+      retcode: 1
+      partstdout: "KO\n"
+
+    - name: '[dot][check] Resolver returning a malformed DNS message'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+          - 'check'
+      args:
+          - '--dot'
+          - '--check'
+          - 'dns.digitale-gesellschaft.ch'
+          - 'framagit.org'
+      retcode: 0
+      stderr: ''
+      stdout: "OK\n"
+
+# DoT pipelining
+################################################################################
+
+    - name: '[dot][pipelining] Pipelining only with dot'
+      exe: './remoh.py'
+      markers:
+          - 'pipelining'
+      args:
+          - '--pipelining'
+          - 'dot.bortzmeyer.fr'
+      retcode: 1
+      partstderr: 'Pipelining is only accepted for DoT'
+      stdout: ''
+
+    - name: '[dot][pipelining] 5 requests from input file'
+      exe: './remoh.py'
+      markers:
+          - 'dot'
+          - 'pipelining'
+      args:
+          - '--dot'
+          - '--pipelining'
+          - '--file'
+          - 'input_file'
+          - '--repeat'
+          - '5'
+          - 'dot.bortzmeyer.fr'
+      retcode: 0
+      stderr: ''
+      partstdout: "OK\n"
+
+# DoH multistreams
+################################################################################
+
+    - name: '[doh][streams] Multistreams invalid URL'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+          - 'streams'
+      args:
+          - '--multistreams'
+          - '--file'
+          - 'input_file'
+          - 'dot.bortzmeyer.fr'
+      retcode: 1
+      partstderr: 'DoH requires a valid'
+      stdout: ''
+
+    - name: '[doh][streams] Multistreams with 1 request'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+          - 'streams'
+      args:
+          - '--multistreams'
+          - '--file'
+          - 'input_file'
+          - 'https://doh.bortzmeyer.fr'
+      retcode: 0
+      stderr: ''
+      partstdout: 'NOERR'
+
+      # This test might fail
+      # this is due to the fact that it will check that libcurl
+      # uses HTTP/2 streams but sometimes the connection is
+      # available very quickly making unnecessary to use
+      # different streams
+    - name: '[doh][streams] Multistreams with 3 requests (can fail)'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+          - 'streams'
+      args:
+          - '--debug'
+          - '--multistreams'
+          - '--file'
+          - 'input_file'
+          - '--repeat'
+          - '3'
+          - 'https://doh.powerdns.org'
+      retcode: 0
+      partstderr: 'Multiplexed connection found'
+      partstdout: 'Return code 200'
+
+      # same as previous test
+    - name: '[doh][streams] Multistreams with 5 requests'
+      exe: './remoh.py'
+      markers:
+          - 'doh'
+          - 'streams'
+      args:
+          - '--debug'
+          - '--multistreams'
+          - '--file'
+          - 'input_file'
+          - '--repeat'
+          - '5'
+          - 'https://doh.bortzmeyer.fr'
+      retcode: 0
+      partstderr: 'Multiplexed connection found'
+      partstdout: 'Return code 200'
+
+# Monitoring
+################################################################################
+
+# DoT
+    - name: '[monitoring][dot] Use an IPv6'
+      exe: './check_dot'
+      markers:
+          - 'dot'
+          - 'monitoring'
+      args:
+          - '-H'
+          - '2001:41d0:302:2200::180'
+          - '-V'
+          - 'dot.bortzmeyer.fr'
+          - '-n'
+          - 'framagit.org'
+      retcode: 0
+      stderr: ''
+      partstdout: 'OK'
+
+    - name: '[monitoring][dot] Use IPv6 address and force IPv6'
+      exe: './check_dot'
+      markers:
+          - 'dot'
+          - 'monitoring'
+          - 'forceIPv6'
+      args:
+          - '-6'
+          - '-H'
+          - '2001:41d0:302:2200::180'
+          - '-V'
+          - 'dot.bortzmeyer.fr'
+          - '-n'
+          - 'framagit.org'
+      retcode: 0
+      stderr: ''
+      partstdout: 'OK'
+
+    - name: '[monitoring][dot] Use an IPv4'
+      exe: './check_dot'
+      markers:
+          - 'dot'
+          - 'monitoring'
+      args:
+          - '-H'
+          - '193.70.85.11'
+          - '-V'
+          - 'dot.bortzmeyer.fr'
+          - '-n'
+          - 'framagit.org'
+      retcode: 0
+      stderr: ''
+      partstdout: 'OK'
+
+    - name: '[monitoring][dot] Use IPv4 address and force IPv4'
+      exe: './check_dot'
+      markers:
+          - 'dot'
+          - 'monitoring'
+          - 'forceIPv4'
+      args:
+          - '-4'
+          - '-H'
+          - '193.70.85.11'
+          - '-V'
+          - 'dot.bortzmeyer.fr'
+          - '-n'
+          - 'framagit.org'
+      retcode: 0
+      stderr: ''
+      partstdout: 'OK'
+
+    - name: '[monitoring][dot] Test there is the expected string'
+      exe: './check_dot'
+      markers:
+          - 'dot'
+          - 'monitoring'
+      args:
+          - '-H'
+          - 'dot.bortzmeyer.fr'
+          - '-n'
+          - 'joinmobilizon.org'
+          - '-e'
+          - '2a01:4f8:221:131d::178'
+      retcode: 0
+      stderr: ''
+      partstdout: 'OK - No error'
+
+    - name: '[monitoring][dot] Test there is *not* the expected string'
+      exe: './check_dot'
+      markers:
+          - 'dot'
+          - 'monitoring'
+      args:
+          - '-H'
+          - 'dot.bortzmeyer.fr'
+          - '-n'
+          - 'joinpeertube.org'
+          - '-e'
+          - 'foobar'
+      retcode: 2
+      stderr: ''
+      partstdout: 'Cannot find'
+
+    - name: '[monitoring][dot] Certificate error'
+      exe: './check_dot'
+      markers:
+          - 'dot'
+          - 'monitoring'
+      args:
+          - '-H'
+          - 'doh.bortzmeyer.fr'
+          - '-n'
+          - 'dnsforum.bj'
+      retcode: 2
+      partstdout: 'certificate'
+
+# DoH
+    - name: '[monitoring][doh] Use an IPv6'
+      exe: './check_doh'
+      markers:
+          - 'doh'
+          - 'monitoring'
+      args:
+          - '-H'
+          - '2001:41d0:302:2200::180'
+          - '-V'
+          - 'doh.bortzmeyer.fr'
+          - '-n'
+          - 'framagit.org'
+      retcode: 0
+      stderr: ''
+      partstdout: 'OK'
+
+    - name: '[monitoring][doh] Use IPv6 address and force IPv6'
+      exe: './check_doh'
+      markers:
+          - 'doh'
+          - 'monitoring'
+          - 'forceIPv6'
+      args:
+          - '-6'
+          - '-H'
+          - '2001:41d0:302:2200::180'
+          - '-V'
+          - 'doh.bortzmeyer.fr'
+          - '-n'
+          - 'framagit.org'
+      retcode: 0
+      stderr: ''
+      partstdout: 'OK'
+
+    - name: '[monitoring][doh] Use an IPv4'
+      exe: './check_doh'
+      markers:
+          - 'doh'
+          - 'monitoring'
+      args:
+          - '-H'
+          - '193.70.85.11'
+          - '-V'
+          - 'doh.bortzmeyer.fr'
+          - '-n'
+          - 'framagit.org'
+      retcode: 0
+      stderr: ''
+      partstdout: 'OK'
+
+    - name: '[monitoring][doh] Use IPv4 address and force IPv4'
+      exe: './check_doh'
+      markers:
+          - 'doh'
+          - 'monitoring'
+          - 'forceIPv4'
+      args:
+          - '-4'
+          - '-H'
+          - '193.70.85.11'
+          - '-V'
+          - 'doh.bortzmeyer.fr'
+          - '-n'
+          - 'framagit.org'
+      retcode: 0
+      stderr: ''
+      partstdout: 'OK'
+
+    - name: '[monitoring][doh] Test there is the expected string'
+      exe: './check_doh'
+      markers:
+          - 'doh'
+          - 'monitoring'
+      args:
+          - '-H'
+          - 'doh.bortzmeyer.fr'
+          - '-n'
+          - 'joinmobilizon.org'
+          - '-e'
+          - '2a01:4f8:221:131d::178'
+      retcode: 0
+      stderr: ''
+      partstdout: 'OK - No error'
+
+    - name: '[monitoring][doh] Test there is *not* the expected string'
+      exe: './check_doh'
+      markers:
+          - 'doh'
+          - 'monitoring'
+      args:
+          - '-H'
+          - 'doh.bortzmeyer.fr'
+          - '-n'
+          - 'joinpeertube.org'
+          - '-e'
+          - 'foobar'
+      retcode: 2
+      stderr: ''
+      partstdout: 'Cannot find'
+
+    - name: '[monitoring][doh] Certificate error'
+      exe: './check_doh'
+      markers:
+          - 'doh'
+          - 'monitoring'
+      args:
+          - '-H'
+          - 'dot.bortzmeyer.fr'
+          - '-n'
+          - 'dnsforum.bj'
+      retcode: 2
+      partstdout: 'certificate'
